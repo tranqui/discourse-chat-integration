@@ -40,8 +40,13 @@ en:
         mute: 'Mute'
         follow: 'First post only'
         watch: 'All posts and replies'
+      style:
+        long: 'Long'
+        short_replies: 'Short replies'
+        short: 'Short'
       rule_table:
         filter: "Filter"
+        style: "Style"
         category: "Category"
         tags: "Tags"
         edit_rule: "Edit"
@@ -70,12 +75,14 @@ en:
         type: Type
         channel: Channel
         filter: Filter
+        style: Style
         category: Category
         group: Group
         tags: Tags
         instructions:
           type: "Change the type to trigger notifications for group messages or mentions"
           filter: "Notification level. Mute overrides other matching rules"
+          style: "How to format bot posts created by this rule. Warning: may be overridden by other matching rules if they overlap"
           category: "This rule will only apply to topics in the specified category"
           group: "This rule will apply to posts referencing this group"
           tags: "If specified, this rule will only apply to topics which have at least one of these tags"

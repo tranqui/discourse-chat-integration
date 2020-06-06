@@ -33,11 +33,18 @@ export default RestModel.extend({
     { id: "group_mention", name: I18n.t("chat_integration.type.group_mention") }
   ],
 
+  available_styles: [
+    { id: "long", name: I18n.t("chat_integration.style.long") },
+    { id: "short_replies", name: I18n.t("chat_integration.style.short_replies") },
+    { id: "short", name: I18n.t("chat_integration.style.short") }
+  ],
+
   category_id: null,
   tags: null,
   channel_id: null,
   filter: "watch",
   type: "normal",
+  style: "long",
   error_key: null,
 
   @observes("type")
@@ -65,13 +72,19 @@ export default RestModel.extend({
     return I18n.t(`chat_integration.filter.${filter}`);
   },
 
+  @computed("style")
+  styleName(style) {
+    return I18n.t(`chat_integration.style.${style}`);
+  },
+
   updateProperties() {
     return this.getProperties([
       "type",
       "category_id",
       "group_id",
       "tags",
-      "filter"
+      "filter",
+      "style"
     ]);
   },
 
@@ -82,7 +95,8 @@ export default RestModel.extend({
       "category_id",
       "group_id",
       "tags",
-      "filter"
+      "filter",
+      "style"
     ]);
   }
 });

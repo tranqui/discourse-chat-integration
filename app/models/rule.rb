@@ -2,7 +2,7 @@
 
 class DiscourseChat::Rule < DiscourseChat::PluginModel
   # Setup ActiveRecord::Store to use the JSON field to read/write these values
-  store :value, accessors: [ :channel_id, :type, :group_id, :category_id, :tags, :filter ], coder: JSON
+  store :value, accessors: [ :channel_id, :type, :group_id, :category_id, :tags, :filter, :style ], coder: JSON
 
   scope :with_type, ->(type) { where("value::json->>'type'=?", type.to_s) }
   scope :with_channel, ->(channel) { with_channel_id(channel.id) }
@@ -34,6 +34,13 @@ class DiscourseChat::Rule < DiscourseChat::PluginModel
       WHEN value::json->>'filter' = 'watch' THEN 2
       WHEN value::json->>'filter' = 'follow' THEN 3
      END
+    ",
+    "
+      CASE
+      WHEN value::json->>'style' = 'long' THEN 1
+      WHEN value::json->>'style' = 'short_replies' THEN 2
+      WHEN value::json->>'style' = 'short' THEN 3
+     END
     ")
   }
 
@@ -44,6 +51,9 @@ class DiscourseChat::Rule < DiscourseChat::PluginModel
 
   validates :type, inclusion: { in: %w(normal group_message group_mention),
                                 message: "%{value} is not a valid filter" }
+
+  validates :style, inclusion: { in: %w(long short_replies short),
+                                  message: "%{value} is not a valid style" }
 
   validate :channel_valid?, :category_valid?, :group_valid?, :tags_valid?
 
@@ -126,5 +136,6 @@ class DiscourseChat::Rule < DiscourseChat::PluginModel
   def init_filter
     self.filter ||= 'watch'
     self.type ||= 'normal'
+    self.style ||= 'long'
   end
 end

@@ -47,6 +47,17 @@
           <td><label>{{i18n 'chat_integration.edit_rule_modal.instructions.filter'}}</label></td>
         </tr>
 
+        <tr class="input">
+          <td class="label"><label for='style'>{{i18n "chat_integration.edit_rule_modal.style"}}</label></td>
+          <td>
+            {{combo-box name="style" content=model.rule.available_styles value=model.rule.style}}
+          </td>
+        </tr>
+        <tr class="instructions">
+          <td></td>
+          <td><label>{{i18n 'chat_integration.edit_rule_modal.instructions.style'}}</label></td>
+        </tr>
+
         {{#if showCategory}}
           <tr class="input">
             <td class="label"><label for='category'>{{i18n "chat_integration.edit_rule_modal.category"}}</label></td>
