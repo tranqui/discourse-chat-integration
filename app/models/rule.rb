@@ -38,7 +38,7 @@ class DiscourseChat::Rule < DiscourseChat::PluginModel
     "
       CASE
       WHEN value::json->>'style' = 'long' THEN 1
-      WHEN value::json->>'style' = 'short_replies' THEN 2
+      WHEN value::json->>'style' = 'medium' THEN 2
       WHEN value::json->>'style' = 'short' THEN 3
      END
     ")
@@ -52,7 +52,7 @@ class DiscourseChat::Rule < DiscourseChat::PluginModel
   validates :type, inclusion: { in: %w(normal group_message group_mention),
                                 message: "%{value} is not a valid filter" }
 
-  validates :style, inclusion: { in: %w(long short_replies short),
+  validates :style, inclusion: { in: %w(long medium short),
                                   message: "%{value} is not a valid style" }
 
   validate :channel_valid?, :category_valid?, :group_valid?, :tags_valid?
@@ -136,6 +136,6 @@ class DiscourseChat::Rule < DiscourseChat::PluginModel
   def init_filter
     self.filter ||= 'watch'
     self.type ||= 'normal'
-    self.style ||= 'long'
+    self.style ||= 'medium'
   end
 end

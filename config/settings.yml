@@ -64,7 +64,9 @@ chat_integration:
   chat_integration_mattermost_icon_url:
     default: ''
   chat_integration_mattermost_excerpt_length:
-    default: 400
+    default: 1000
+  chat_integration_mattermost_compact_excerpt_length:
+    default: 200
 
 #######################################
 ########## MATRIX SETTINGS ############

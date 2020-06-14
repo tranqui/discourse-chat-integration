@@ -40,7 +40,7 @@ module DiscourseChat
         end
       end
 
-      # If tagging is enabled, thow away rules that don't apply to this topic
+      # If tagging is enabled, throw away rules that don't apply to this topic
       if SiteSetting.tagging_enabled
         topic_tags = topic.tags.present? ? topic.tags.pluck(:name) : []
         matching_rules = matching_rules.select do |rule|
@@ -78,9 +78,20 @@ module DiscourseChat
         next unless channel = rule.channel
         next unless provider = ::DiscourseChat::Provider.get_by_name(channel.provider)
         next unless is_enabled = ::DiscourseChat::Provider.is_enabled(provider)
+        next unless style = rule.style
+
+        # Hide outputting which category the post is in if only a single category outputs to the chat.
+        specify_category = true
+        if topic.archetype != Archetype.private_message
+          other_rules = DiscourseChat::Rule.with_type('normal').with_channel_id(channel.id)
+          other_rules = other_rules.select { |r| r.category_id != rule.category_id and r != rule }
+          if other_rules.empty?
+            specify_category = false
+          end
+        end
 
         begin
-          provider.trigger_notification(post, channel)
+          provider.trigger_notification(post, channel, style, specify_category)
           channel.update_attribute('error_key', nil) if channel.error_key
         rescue => e
           if e.class == (DiscourseChat::ProviderError) && e.info.key?(:error_key) && !e.info[:error_key].nil?

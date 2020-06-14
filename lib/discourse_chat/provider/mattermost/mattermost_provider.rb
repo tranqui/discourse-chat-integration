@@ -8,8 +8,10 @@ module DiscourseChat
       WEBHOOK_PARAMETERS = [
                           { key: "name", regex: '^\S*$', unique: true },
                           { key: "url", regex: '^\S*$', unique: false },
+                          { key: "username", regex: '^.*$', unique: false},
                           { key: "icon_url", regex: '^[\S]*$', unique: false },
-                          { key: "excerpt_length", regex: '^\d\d*$', unique: false }
+                          { key: "excerpt_length", regex: '^\d\d*$', unique: false },
+                          { key: "compact_excerpt_length", regex: '^\d\d*$', unique: false }
                        ]
       CHANNEL_PARAMETERS = [
                           { key: "webhook", regex: '^[\S]*$', unique: true,
@@ -37,7 +39,7 @@ module DiscourseChat
 
       end
 
-      def self.mattermost_message(post, channel, icon_url, excerpt_length)
+      def self.mattermost_message(post, channel, username, icon_url, excerpt_length, style, specify_category)
         display_name = "@#{post.user.username}"
         full_name = post.user.name || ""
 
@@ -49,38 +51,78 @@ module DiscourseChat
 
         category = ''
         if topic.category&.uncategorized?
-          category = "[#{I18n.t('uncategorized_category_name')}]"
+          category = "#{I18n.t('uncategorized_category_name')}"
         elsif topic.category
-          category = (topic.category.parent_category) ? "[#{topic.category.parent_category.name}/#{topic.category.name}]" : "[#{topic.category.name}]"
+          category = (topic.category.parent_category) ? "#{topic.category.parent_category.name}/#{topic.category.name}" : "#{topic.category.name}"
+          category = "[#{category}](#{Discourse.base_url}/c/#{topic.category.slug_for_url})"
+        else
+          category = "group message"
         end
 
         message = {
           channel: channel,
-          username: SiteSetting.title || "Discourse",
-          icon_url: icon_url,
-          attachments: []
+          username: username,
+          icon_url: icon_url
         }
+
+        text = "#{post.excerpt(excerpt_length, text_entities: true, strip_links: true, remap_emoji: true)}"
+        if text.length > excerpt_length
+          text = "#{text} _[(Read more)](#{post.full_url})_"
+        end
+        text = text.gsub("@", "@[]()")
+
+        title_suffix = specify_category ? " in #{category}" : ""
+        title = "[#{topic.title}](#{post.full_url})#{title_suffix}"
+        author_link = "#{Discourse.base_url}/u/#{post.user.username}"
 
         summary = {
           fallback: "#{topic.title} - #{display_name}",
-          author_name: display_name,
-          author_icon: post.user.small_avatar_url,
-          color: topic.category ? "##{topic.category.color}" : nil,
-          text: post.excerpt(excerpt_length, text_entities: true, strip_links: true, remap_emoji: true),
-          title: "#{topic.title} #{category} #{topic.tags.present? ? topic.tags.map(&:name).join(', ') : ''}",
-          title_link: post.full_url,
+          color: topic.category ? "##{topic.category.color}" : nil
+          #{topic.tags.present? ? topic.tags.map(&:name).join(', ') : ''}",
         }
 
-        message[:attachments].push(summary)
+        if style == "long"
+          text = text.gsub("\n", "\n\n")
+          summary["author_name"] = display_name
+          summary["author_icon"] = post.user.small_avatar_url
+          action = post.is_first_post? ? "created" : "replied to"
+          summary["title"] = "#{action} #{title}:"
+        elsif style == "medium"
+          text = text.gsub(/\s+/, ' ')
+          author = "[![#{display_name}'s avatar](#{post.user.small_avatar_url} =16x16)#{display_name}](#{author_link})"
+          action = post.is_first_post? ? "created" : "on"
+          text = "_#{author} #{action} #{title}:_ \n\n#{text}"
+        elsif style == "short"
+          text = text.gsub(/\s+/, ' ')
+          author = "[#{display_name}](#{author_link})"
+          action = post.is_first_post? ? "created" : "on"
+          text = "_#{author} #{action} #{title}:_ #{text}"
+        else
+          error_key = 'chat_integration.provider.mattermost.errors.style_not_found'
+          raise ::DiscourseChat::ProviderError.new info: { error_key: error_key, style: style }
+        end
+
+        if style == "short"
+          message["text"] = text
+        else
+          summary["text"] = text
+          message["attachments"] = [summary]
+        end
+
         message
       end
 
-      def self.trigger_notification(post, channel)
+      def self.trigger_notification(post, channel, style="medium", specify_category=true)
         webhook_name = channel.data['webhook']
 
         if webhook_name.blank?
           url = SiteSetting.chat_integration_mattermost_webhook_url
-          excerpt_length = SiteSetting.chat_integration_mattermost_excerpt_length
+          username = SiteSetting.title || "Discourse"
+          if style == "long"
+            excerpt_length = SiteSetting.chat_integration_mattermost_excerpt_length
+          else
+            excerpt_length = SiteSetting.chat_integration_mattermost_compact_excerpt_length
+          end
           icon_url = nil
         else
           webhooks = DiscourseChat::Webhook.with_provider(PROVIDER_NAME)
@@ -91,8 +133,15 @@ module DiscourseChat
           end
 
           url = webhook.data['url']
+          username = webhook.data['username'] || SiteSetting.title || "Discourse"
           icon_url = webhook.data['icon_url']
-          excerpt_length = Integer(webhook.data['excerpt_length'])
+
+          if style == "long"
+            excerpt_length = webhook.data['excerpt_length'] || SiteSetting.chat_integration_mattermost_excerpt_length
+          else
+            excerpt_length = webhook.data['compact_excerpt_length'] || SiteSetting.chat_integration_mattermost_compact_excerpt_length
+          end
+          excerpt_length = Integer(excerpt_length)
         end
 
         if icon_url.blank?
@@ -105,7 +154,7 @@ module DiscourseChat
         end
 
         channel_id = channel.data['identifier']
-        message = mattermost_message(post, channel_id, icon_url, excerpt_length)
+        message = mattermost_message(post, channel_id, username, icon_url, excerpt_length, style, specify_category)
 
         self.send_via_webhook(url, message)
       end

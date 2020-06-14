@@ -41,6 +41,7 @@ en:
     chat_integration_mattermost_incoming_webhook_token: 'The verification token used to authenticate incoming requests'
     chat_integration_mattermost_icon_url: "Icon for posts to Mattermost (defaults to forum logo)"
     chat_integration_mattermost_excerpt_length: "Mattermost post excerpt length"
+    chat_integration_mattermost_compact_excerpt_length: "Mattermost post excerpt length for compact/minimal posts"
 
     #######################################
     ############ MATRIX SETTINGS ##########

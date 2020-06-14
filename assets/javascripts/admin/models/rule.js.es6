@@ -35,7 +35,7 @@ export default RestModel.extend({
 
   available_styles: [
     { id: "long", name: I18n.t("chat_integration.style.long") },
-    { id: "short_replies", name: I18n.t("chat_integration.style.short_replies") },
+    { id: "medium", name: I18n.t("chat_integration.style.medium") },
     { id: "short", name: I18n.t("chat_integration.style.short") }
   ],
 
@@ -44,7 +44,7 @@ export default RestModel.extend({
   channel_id: null,
   filter: "watch",
   type: "normal",
-  style: "long",
+  style: "medium",
   error_key: null,
 
   @observes("type")
